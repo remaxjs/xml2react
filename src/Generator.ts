@@ -1,30 +1,11 @@
 import prettier from 'prettier';
 import MagicString from 'magic-string';
 import { Node, Element, DataNode } from 'domhandler';
-import { buildIfDirective, buildElseIfDirective, buildElseDirective } from './directive';
-
-const directiveBuilders: { [name: string]: Function } = {
-  'a:if': buildIfDirective,
-  'a:elsif': buildElseIfDirective,
-  'a:else': buildElseDirective,
-};
+import { directiveBuilders } from './directive';
+import { isElement, isDataNode } from './types';
 
 export interface Options {
   pretty?: boolean;
-}
-
-function isElement(node: Node | undefined): node is Element {
-  if (!node) {
-    return false;
-  }
-  return node.type === 'tag';
-}
-
-function isDataNode(node: Node | undefined): node is DataNode {
-  if (!node) {
-    return false;
-  }
-  return node.type === 'text';
 }
 
 export default class Generator {

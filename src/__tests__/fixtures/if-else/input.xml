@@ -1,3 +1,2 @@
 <view a:if="{{condition}}">1</view>
 <view a:else>2</view>
-
