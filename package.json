@@ -1,0 +1,32 @@
+{
+  "name": "xml2react",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "Wei Zhu <yesmeck@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^24.0.18",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.5.3"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@babel/parser": "^7.5.5",
+    "@babel/traverse": "^7.5.5",
+    "@babel/types": "^7.5.5",
+    "@types/babel__traverse": "^7.0.7",
+    "@types/domhandler": "^2.4.1",
+    "@types/htmlparser2": "^3.10.1",
+    "@types/prettier": "^1.18.2",
+    "domhandler": "^3.0.0",
+    "htmlparser2": "^4.0.0",
+    "magic-string": "^0.25.3",
+    "prettier": "^1.18.2"
+  }
+}

@@ -1,0 +1,1 @@
+<view a:if="{{condition}}">True</view>
