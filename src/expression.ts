@@ -26,7 +26,5 @@ export function buildExpression(text: string) {
     },
   });
 
-  return generate(ast, {
-    quotes: 'single',
-  }).code.replace(/;$/, '');
+  return (ast.program.body[0] as t.ExpressionStatement).expression;
 }

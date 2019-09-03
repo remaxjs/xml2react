@@ -1,5 +1,6 @@
 import { buildExpression } from './expression';
-import { Element } from 'domhandler';
+import { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
 import { isElement } from './types';
 
 export const directiveBuilders: { [name: string]: Function } = {
@@ -8,14 +9,17 @@ export const directiveBuilders: { [name: string]: Function } = {
   'a:else': buildElseDirective,
 };
 
-export function buildIfDirective(node: Element) {
-  const expression = buildExpression(node.attribs['a:if']);
-  const start = `((${expression}) ? (\n`;
-  let end = `) : null)\n`;
-  if (node.next && isElement(node.next) && node.attribs['a:else']) {
-    end = buildElseDirective(node.next);
-  }
-  return [start, end];
+export function buildIfDirective(path: NodePath<t.JSXAttribute>, value: string) {
+  const parentPath = path.parentPath.parentPath as NodePath<t.JSXElement>;
+
+  const nextElement = path.getSibling(+path.key + 1);
+  const test = buildExpression((path.node.value as t.StringLiteral).value);
+
+  parentPath.replaceWith(
+    t.conditionalExpression(test, parentPath.node, t.isJSXElement(nextElement) ? nextElement : t.nullLiteral()),
+  );
+
+  path.remove();
 }
 
 export function buildElseDirective(node: Element) {

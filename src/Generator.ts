@@ -1,7 +1,11 @@
 import prettier from 'prettier';
 import MagicString from 'magic-string';
-import { Node, Element, DataNode } from 'domhandler';
-import { directiveBuilders } from './directive';
+import { Node } from 'domhandler';
+import { parse } from '@babel/parser';
+import traverse, { NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
+import generate from '@babel/generator';
+import { directiveBuilders, buildIfDirective } from './directive';
 import { isElement, isDataNode } from './types';
 
 export interface Options {
@@ -20,53 +24,69 @@ export default class Generator {
   }
 
   generate() {
-    this.code.append('export default (props) => (\n');
-    this.walk(this.dom);
-    this.code.append(');');
-    let code = this.code.toString();
+    this.normalizeExpression(this.dom);
+    const jsx: string[] = [];
+    this.generateJSX(this.dom, jsx);
+    const component = this.generateComponent(jsx.join(''));
     if (this.options.pretty) {
-      code = prettier.format(code, { singleQuote: true, parser: 'babel' });
+      // code = prettier.format(code, { singleQuote: true, parser: 'babel' });
     }
-    return code;
+    return component;
   }
 
-  walk(tree: Node[]) {
+  normalizeExpression(tree: Node[]) {
     tree.forEach(node => {
       if (isElement(node)) {
-        const { name, attribs } = node;
-        const directives: Array<string[]> = [];
-        Object.keys(attribs).forEach(attrName => {
-          const build = directiveBuilders[attrName];
-          if (build) {
-            const directive = build(node);
-            directives.push(directive);
-            if (directive[0]) {
-              this.code.append(directive[0]);
-            }
-          }
+        this.normalizeExpression(node.children);
+      }
+      if (isDataNode(node)) {
+        node.data = node.data.replace(/{{(.+?)}}/g, (match, p1) => {
+          return `{${p1}}`;
         });
-
-        if (name === 'import-module') {
-          this.code.prepend(`import ${attribs.name} from ${attribs.from};\n`);
-        } else {
-          const attributesString = Object.keys(attribs)
-            .filter(name => !directiveBuilders[name])
-            .map(name => `${name}=${attribs[name]}`)
-            .join(' ');
-          this.code.append(`<${(name + ' ' + attributesString).trim()}>`);
-          this.walk(node.children);
-          this.code.append(`</${name}>\n`);
-
-          while (directives.length > 0) {
-            const directive = directives.pop()!;
-            if (directive[1]) {
-              this.code.append(directive[1]);
-            }
-          }
-        }
-      } else if (isDataNode(node)) {
-        this.code.append(node.data);
       }
     });
+  }
+
+  generateJSX(tree: Node[], lines: string[]) {
+    tree.forEach(node => {
+      if (isElement(node)) {
+        const { name, attribs, children } = node;
+        const attributesString = Object.keys(attribs)
+          .map(name => `${name}="${attribs[name]}"`)
+          .join(' ');
+        lines.push(`<${(name + ' ' + attributesString).trim()}>`);
+        this.generateJSX(children, lines);
+        lines.push(`</${name}>`);
+      } else if (isDataNode(node)) {
+        lines.push(node.data);
+      }
+    });
+  }
+
+  generateComponent(jsx: string) {
+    const ast = parse(jsx, {
+      plugins: ['jsx'],
+    });
+    traverse(ast, {
+      JSXAttribute(path) {
+        const node = path.node;
+
+        if (!node.name) {
+          return;
+        }
+
+        if (node.name.name === 'class') {
+          path.replaceWith(t.jsxAttribute(t.jsxIdentifier('className'), node.value));
+        } else if (t.isJSXNamespacedName(node.name)) {
+          if (node.name.namespace.name === 'a' && node.name.name.name === 'if') {
+            buildIfDirective(path, (node.value as t.StringLiteral).value);
+          }
+        }
+      },
+    });
+
+    return generate(ast, {
+      quotes: 'single',
+    }).code.replace(/;$/, '');
   }
 }
