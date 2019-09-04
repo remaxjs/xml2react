@@ -2,10 +2,10 @@ import prettier from 'prettier';
 import MagicString from 'magic-string';
 import { Node } from 'domhandler';
 import { parse } from '@babel/parser';
-import traverse, { NodePath } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import generate from '@babel/generator';
-import { directiveBuilders, buildIfDirective } from './directive';
+import { buildIfDirective } from './directive';
 import { isElement, isDataNode } from './types';
 
 export interface Options {
@@ -27,11 +27,13 @@ export default class Generator {
     this.normalizeExpression(this.dom);
     const jsx: string[] = [];
     this.generateJSX(this.dom, jsx);
-    const component = this.generateComponent(jsx.join(''));
+    jsx.unshift('<>');
+    jsx.push('</>');
+    let code = this.generateComponent(jsx.join(''));
     if (this.options.pretty) {
-      // code = prettier.format(code, { singleQuote: true, parser: 'babel' });
+      code = prettier.format(code, { singleQuote: true, parser: 'babel' });
     }
-    return component;
+    return code;
   }
 
   normalizeExpression(tree: Node[]) {
@@ -85,8 +87,11 @@ export default class Generator {
       },
     });
 
-    return generate(ast, {
+    const code = generate(ast, {
       quotes: 'single',
     }).code.replace(/;$/, '');
+    return `
+    export default props => (${code});
+    `;
   }
 }
