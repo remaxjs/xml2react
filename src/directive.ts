@@ -16,7 +16,9 @@ export function buildIfDirective(path: NodePath<t.JSXAttribute>, value: string) 
   const test = buildExpression((path.node.value as t.StringLiteral).value);
 
   parentPath.replaceWith(
-    t.conditionalExpression(test, parentPath.node, t.isJSXElement(nextElement) ? nextElement : t.nullLiteral()),
+    t.jsxExpressionContainer(
+      t.conditionalExpression(test, parentPath.node, t.isJSXElement(nextElement) ? nextElement : t.nullLiteral()),
+    ),
   );
 
   path.remove();
